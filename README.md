@@ -2,7 +2,7 @@
 
 自然語言處理課程作業：使用健康醫療網新聞、地端語言模型與向量檢索，建立具有多輪對話功能的網頁健康諮詢系統。
 
-目前進度：已建立 Git 專案；爬蟲、摘要、索引與網頁問答尚待實作。
+目前進度：已建立 Git 專案與少量新聞爬蟲；摘要、資料庫、索引與網頁問答尚待實作。
 
 ## 作業要求
 
@@ -21,7 +21,24 @@
 
 ## 執行方式
 
-待實作後補上環境設定、套件版本、模型名稱與執行指令。
+環境：Windows、Python 3.12.10、Ollama 0.35.1。地端模型使用 `qwen3:4b`。
+
+在專案資料夾執行：
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+ollama pull qwen3:4b
+.\.venv\Scripts\python.exe crawl_news.py --limit 3 --pages 1
+```
+
+爬蟲預設取得大腸直腸癌分類第一頁的三篇新聞，存入 `data/news_raw.json`。
+每篇保存 `title`、`link`、`content`、`published_at`（網站發布時間）與 `created_at`（取得資料時間，UTC+8）。
+正式資料庫的流水號與摘要將於後續步驟加入。
+
+請求之間等待兩秒，連線錯誤會有限度重試；每成功取得一篇即保存。
+每次執行會更新 JSON，並非累加。可調整 `--limit` 和 `--pages`，例如 `--limit 10 --pages 2`。
+新聞資料供本機作業使用，`data/` 已從 Git 追蹤排除。
 
 ## 成果
 
