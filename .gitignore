@@ -1,0 +1,27 @@
+# Python environments and generated files
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Local secrets
+.env
+.env.*
+!.env.example
+
+# Generated data, indexes and downloaded models
+data/
+models/
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+*.index
+news_list.json
+news_data.json
+
+# OS files
+Thumbs.db
+.DS_Store
