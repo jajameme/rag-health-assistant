@@ -62,7 +62,7 @@ def retrieve_news(question, top_k):
     return news
 
 
-def answer_question(question, news):
+def answer_question(question, news, history=None):
     """將真正檢索到的新聞摘要放入提示詞，讓千問根據資料回答。"""
     # 把多篇新聞組成一段參考資料，用編號讓模型可以指明來源。
     references = []
@@ -71,10 +71,10 @@ def answer_question(question, news):
             f"[新聞 {number}]\n標題：{article['title']}\n摘要：{article['summary']}"
         )
     context = "\n\n".join(references)
-    prompt = f"""請根據參考新聞摘要回答使用者問題。
+    prompt = f"""請根據參考新聞摘要與先前對話回答使用者問題。
 規則：
 1. 使用繁體中文，直接回答，約 150～250 字。
-2. 只能根據提供的摘要；摘要無法回答時，明確說資料不足，不要猜測。
+2. 只能根據提供的摘要與對話；資料無法回答時，明確說資料不足，不要猜測。
 3. 保留原文的限制條件，不將個別案例當成人人適用的結論。
 4. 可用 [新聞 1] 等編號標示依據，不要自行編造新聞連結或來源清單。
 5. 不提供個人診斷或處方。
@@ -86,12 +86,14 @@ def answer_question(question, news):
 
 使用者問題：{question}"""
     client = Client(host="http://localhost:11434", timeout=600)
+    # 網頁會傳入最近兩輪的 user/assistant 訊息；命令列預設沒有歷史。
+    messages = [{"role": "system", "content": "你是健康新聞資訊助手，依據提供的資料忠實回答。"}]
+    for message in (history or [])[-4:]:
+        messages.append({"role": message["role"], "content": message["content"]})
+    messages.append({"role": "user", "content": prompt})
     response = client.chat(
         model=CHAT_MODEL,
-        messages=[
-            {"role": "system", "content": "你是健康新聞資訊助手，依據提供的資料忠實回答。"},
-            {"role": "user", "content": prompt},
-        ],
+        messages=messages,
         think=True,  # 與摘要程式相同，讓模型思考與最後答案分開。
         stream=False,
         options={"temperature": 0.6, "top_p": 0.95, "top_k": 20,
