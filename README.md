@@ -32,13 +32,30 @@ ollama pull qwen3:4b
 .\.venv\Scripts\python.exe crawl_news.py --limit 3 --pages 1
 ```
 
-爬蟲預設取得大腸直腸癌分類第一頁的三篇新聞，存入 `data/news_raw.json`。
+爬蟲目前預設取得中醫養生分類第一頁的三篇新聞，存入 `data/news_raw.json`。
 每篇保存 `title`、`link`、`content`、`published_at`（網站發布時間）與 `created_at`（取得資料時間，UTC+8）。
 匯入 SQLite 時會自動產生流水號。
 
 請求之間等待兩秒，連線錯誤會有限度重試；每成功取得一篇即保存。
 每次執行會更新 JSON，並非累加。可調整 `--limit` 和 `--pages`，例如 `--limit 10 --pages 2`。
 新聞資料供本機作業使用，`data/` 已從 Git 追蹤排除。
+
+### 改抓中醫養生新聞
+
+可指定完整分類網址。以下從中醫養生第 3 頁開始，最多讀取兩頁（第 3、4 頁），取得最多十篇：
+
+```powershell
+.\.venv\Scripts\python.exe crawl_news.py --channel-url "https://www.healthnews.com.tw/channel/04558c00-7995-b05b-5c26-ef045abc9083/3" --limit 10 --pages 2
+```
+
+若要從較新的第 1 頁開始：
+
+```powershell
+.\.venv\Scripts\python.exe crawl_news.py --start-page 1 --limit 10 --pages 2
+```
+
+爬取新分類會更新原始 JSON。重新產生摘要、匯入 SQLite、重建索引後，問答才會使用新文章。
+SQLite 匯入不刪除舊新聞，因此原有大腸癌新聞仍會保留，並非自動變成純中醫資料庫。
 
 ### 使用千問產生摘要
 

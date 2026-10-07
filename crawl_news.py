@@ -1,4 +1,4 @@
-"""第一步：從健康醫療網大腸直腸癌分類取得少量新聞。"""
+"""第一步：從健康醫療網指定分類取得新聞，預設為中醫養生。"""
 
 import argparse
 import json
@@ -15,7 +15,7 @@ from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
 BASE_URL = "https://www.healthnews.com.tw"
-CHANNEL_URL = f"{BASE_URL}/channel/9b508eee-a171-75b6-0963-eec4e463fc46"
+CHANNEL_URL = f"{BASE_URL}/channel/04558c00-7995-b05b-5c26-ef045abc9083"
 OUTPUT_PATH = Path(__file__).resolve().parent / "data" / "news_raw.json"
 
 
@@ -72,9 +72,21 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--limit", type=int, default=3, help="最多取得幾篇新聞，預設 3")
     parser.add_argument("--pages", type=int, default=1, help="最多讀取幾頁分類，預設 1")
+    parser.add_argument("--channel-url", default=CHANNEL_URL, help="分類網址，可包含頁碼")
+    parser.add_argument("--start-page", type=int, help="起始頁；未指定時使用網址頁碼或第 1 頁")
     args = parser.parse_args()
-    if args.limit < 1 or args.pages < 1:
-        parser.error("limit 與 pages 必須大於 0")
+    # 把網址末尾的頁碼分離，例如 /channel/分類ID/3 從第 3 頁開始。
+    # --start-page 若有指定，優先使用該值。只接受健康醫療網分類網址。
+    match = re.fullmatch(
+        r"https://www\.healthnews\.com\.tw/channel/([A-Za-z0-9-]+)(?:/(\d+))?/?",
+        args.channel_url.strip(),
+    )
+    if match is None:
+        parser.error("channel-url 必須是 https://www.healthnews.com.tw/channel/分類ID[/頁碼]")
+    channel_url = f"{BASE_URL}/channel/{match.group(1)}"
+    start_page = args.start_page if args.start_page is not None else int(match.group(2) or 1)
+    if args.limit < 1 or args.pages < 1 or start_page < 1:
+        parser.error("limit、pages 與起始頁必須大於 0")
 
     news = []
     seen = set()
@@ -84,11 +96,11 @@ def main():
             total=2, backoff_factor=2,
             status_forcelist=[429, 500, 502, 503, 504], allowed_methods=["GET"],
         )))
-        for page in range(1, args.pages + 1):
-            if page > 1:
+        for page in range(start_page, start_page + args.pages):
+            if page > start_page:
                 time.sleep(2)
             print(f"讀取分類第 {page} 頁")
-            links = get_news_links(get_soup(session, f"{CHANNEL_URL}/{page}"))
+            links = get_news_links(get_soup(session, f"{channel_url}/{page}"))
             if not links:
                 raise RuntimeError("分類頁找不到新聞連結，請檢查網址或網站結構")
             for link in links:
